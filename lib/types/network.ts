@@ -1,6 +1,8 @@
 export interface NetworkStatus {
   type: 'cellular' | 'wifi';
   strength: number;
+  speed?: number;
+  latency?: number;
   provider?: string;
   technology?: '3G' | '4G' | '5G';
   timestamp: number;

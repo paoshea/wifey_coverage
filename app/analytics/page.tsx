@@ -97,17 +97,17 @@ export default function AnalyticsPage() {
   const lastPoints = coveragePoints.slice(-20);
 
   const strengthData = lastPoints.map(point => ({
-    time: formatDistanceToNow(new Date(point.timestamp), { addSuffix: true }),
+    time: formatDistanceToNow(new Date(point.createdAt), { addSuffix: true }),
     value: point.status.strength
   }));
 
   const speedData = lastPoints.map(point => ({
-    time: formatDistanceToNow(new Date(point.timestamp), { addSuffix: true }),
+    time: formatDistanceToNow(new Date(point.createdAt), { addSuffix: true }),
     value: point.status.speed || 0
   }));
 
   const latencyData = lastPoints.map(point => ({
-    time: formatDistanceToNow(new Date(point.timestamp), { addSuffix: true }),
+    time: formatDistanceToNow(new Date(point.createdAt), { addSuffix: true }),
     value: point.status.latency || 0
   }));
 

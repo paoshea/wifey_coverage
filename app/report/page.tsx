@@ -13,14 +13,14 @@ export default function ReportPage() {
       timestamp: new Date().toISOString(),
       totalPoints: coveragePoints.length,
       coveragePoints: coveragePoints.map(point => ({
-        timestamp: point.timestamp,
-        location: point.location,
+        timestamp: point.createdAt,
+        location: point.status.coordinates,
         status: {
           strength: point.status.strength,
           speed: point.status.speed,
           latency: point.status.latency,
           provider: point.status.provider,
-          connectionType: point.status.connectionType
+          connectionType: point.status.type
         }
       }))
     };
@@ -118,10 +118,10 @@ export default function ReportPage() {
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Connection Types</h2>
           <div className="space-y-4">
-            {Array.from(new Set(coveragePoints.map(point => point.status.connectionType)))
+            {Array.from(new Set(coveragePoints.map(point => point.status.type)))
               .map(type => {
                 const pointsForType = coveragePoints.filter(
-                  point => point.status.connectionType === type
+                  point => point.status.type === type
                 );
                 const percentage = Math.round(
                   (pointsForType.length / coveragePoints.length) * 100
@@ -151,7 +151,7 @@ export default function ReportPage() {
             {coveragePoints.slice(-5).reverse().map((point, index) => (
               <div key={index} className="border-b last:border-0 pb-2 last:pb-0">
                 <p className="text-sm text-muted-foreground">
-                  {new Date(point.timestamp).toLocaleString()}
+                  {new Date(point.createdAt).toLocaleString()}
                 </p>
                 <div className="grid grid-cols-3 gap-2 mt-1">
                   <div>
