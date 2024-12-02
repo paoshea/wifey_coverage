@@ -1,68 +1,75 @@
 'use client';
 
 import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
   Legend,
-  ResponsiveContainer,
-} from 'recharts';
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+import { Card } from '@/components/ui/card';
 
-const data = [
-  {
-    metric: 'Coverage',
-    'Provider A': 85,
-    'Provider B': 78,
-  },
-  {
-    metric: 'Speed',
-    'Provider A': 90,
-    'Provider B': 75,
-  },
-  {
-    metric: 'Reliability',
-    'Provider A': 95,
-    'Provider B': 88,
-  },
-  {
-    metric: 'Value',
-    'Provider A': 80,
-    'Provider B': 85,
-  },
-  {
-    metric: 'Support',
-    'Provider A': 75,
-    'Provider B': 80,
-  },
-];
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export function QualityMetrics() {
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+    },
+    scales: {
+      x: {
+        stacked: true,
+      },
+      y: {
+        stacked: true,
+        title: {
+          display: true,
+          text: 'Quality Score'
+        }
+      }
+    }
+  };
+
+  const labels = ['Signal Strength', 'Speed', 'Latency', 'Reliability'];
+
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: 'Network A',
+        data: [85, 75, 90, 80],
+        backgroundColor: 'hsl(var(--primary) / 0.8)',
+        stack: 'Stack 0',
+      },
+      {
+        label: 'Network B',
+        data: [70, 85, 75, 90],
+        backgroundColor: 'hsl(var(--primary) / 0.5)',
+        stack: 'Stack 1',
+      },
+    ],
+  };
+
   return (
-    <div className="h-[400px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={data}>
-          <PolarGrid />
-          <PolarAngleAxis dataKey="metric" />
-          <PolarRadiusAxis angle={30} domain={[0, 100]} />
-          <Radar
-            name="Provider A"
-            dataKey="Provider A"
-            stroke="hsl(var(--primary))"
-            fill="hsl(var(--primary))"
-            fillOpacity={0.2}
-          />
-          <Radar
-            name="Provider B"
-            dataKey="Provider B"
-            stroke="hsl(var(--secondary))"
-            fill="hsl(var(--secondary))"
-            fillOpacity={0.2}
-          />
-          <Legend />
-        </RadarChart>
-      </ResponsiveContainer>
-    </div>
+    <Card className="p-4">
+      <h2 className="text-xl font-semibold mb-4">Network Quality Comparison</h2>
+      <div className="h-[400px] w-full">
+        <Bar options={options} data={data} />
+      </div>
+    </Card>
   );
 }
