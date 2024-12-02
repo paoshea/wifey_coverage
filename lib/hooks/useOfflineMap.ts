@@ -40,7 +40,7 @@ export const useOfflineMap = () => {
     return () => {
       offlineTiles.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [isOffline]);
+  }, [isOffline, offlineTiles]);
 
   const getTileUrl = (baseUrl: string) => {
     if (!isOffline) return baseUrl;

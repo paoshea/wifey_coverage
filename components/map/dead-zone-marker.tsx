@@ -26,11 +26,10 @@ export function DeadZoneMarker() {
       point => point.status.strength < 20
     );
 
-    const zones = identifyDeadZones(weakPoints.map(p => p.status));
-    setDeadZones(zones);
-  }, [coveragePoints]);
+    identifyDeadZones(weakPoints.map(p => p.status));
+  }, [coveragePoints, identifyDeadZones]);
 
-  const identifyDeadZones = (points: NetworkStatus[]): DeadZone[] => {
+  const identifyDeadZones = (points: NetworkStatus[]): void => {
     const zones: DeadZone[] = [];
     const processed = new Set<number>();
 
@@ -66,7 +65,7 @@ export function DeadZoneMarker() {
       }
     });
 
-    return zones;
+    setDeadZones(zones);
   };
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {

@@ -7,7 +7,7 @@ export default function NotFound() {
       <div className="space-y-4 text-center">
         <h1 className="text-4xl font-bold">404 - Page Not Found</h1>
         <p className="text-muted-foreground">
-          The page you're looking for doesn't exist.
+          The page you&apos;re looking for doesn&apos;t exist.
         </p>
         <Button asChild>
           <Link href="/">Return Home</Link>

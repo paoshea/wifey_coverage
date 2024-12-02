@@ -2,20 +2,33 @@
 
 import { useState, useEffect } from 'react';
 import { useOfflineDetection } from './useOfflineDetection';
-import { GPSPoint, TrackingOptions } from '@/lib/types/gps';
+import { GPSPoint, TrackingOptions, TrackingState } from '@/lib/types/gps';
 import localforage from 'localforage';
 
-export const useGPSTracking = (options: TrackingOptions = {}) => {
-  const [currentPosition, setCurrentPosition] = useState<GPSPoint | null>(null);
-  const [trackingHistory, setTrackingHistory] = useState<GPSPoint[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const isOffline = useOfflineDetection();
+const DEFAULT_OPTIONS: TrackingOptions = {
+  enableHighAccuracy: true,
+  timeout: 5000,
+  maximumAge: 0,
+  minDistance: 10,
+  minTimeInterval: 10000,
+  persistLocally: true,
+  maxStorageSize: 1000,
+  storageKey: 'gps-tracking-history',
+  batchSize: 50
+};
 
-  const {
-    enableHighAccuracy = true,
-    interval = 10000,
-    minDistance = 10
-  } = options;
+export const useGPSTracking = (options: TrackingOptions = {}) => {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const [state, setState] = useState<TrackingState>({
+    isTracking: false,
+    lastPosition: null,
+    error: null,
+    accuracy: 'none',
+    storedPoints: 0,
+    isSyncing: false
+  });
+  const [trackingHistory, setTrackingHistory] = useState<GPSPoint[]>([]);
+  const isOffline = useOfflineDetection();
 
   // Calculate distance between two points
   const calculateDistance = (p1: GPSPoint, p2: GPSPoint): number => {
@@ -35,8 +48,12 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
 
   // Save tracking history to local storage
   const saveTrackingHistory = async (points: GPSPoint[]) => {
+    if (!opts.persistLocally) return;
+    
     try {
-      await localforage.setItem('gps-tracking-history', points);
+      const trimmedPoints = points.slice(-opts.maxStorageSize!);
+      await localforage.setItem(opts.storageKey!, trimmedPoints);
+      setState(prev => ({ ...prev, storedPoints: trimmedPoints.length }));
     } catch (error) {
       console.error('Error saving tracking history:', error);
     }
@@ -44,10 +61,13 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
 
   // Load tracking history from local storage
   const loadTrackingHistory = async () => {
+    if (!opts.persistLocally) return;
+    
     try {
-      const savedHistory = await localforage.getItem<GPSPoint[]>('gps-tracking-history');
+      const savedHistory = await localforage.getItem<GPSPoint[]>(opts.storageKey!);
       if (savedHistory) {
         setTrackingHistory(savedHistory);
+        setState(prev => ({ ...prev, storedPoints: savedHistory.length }));
       }
     } catch (error) {
       console.error('Error loading tracking history:', error);
@@ -58,7 +78,11 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
     if (typeof window === 'undefined') return;
     
     if (!navigator?.geolocation) {
-      setError('Geolocation is not supported by your browser');
+      setState(prev => ({
+        ...prev,
+        error: new Error('Geolocation is not supported') as GeolocationPositionError,
+        accuracy: 'none'
+      }));
       return;
     }
 
@@ -69,19 +93,28 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
         const newPoint: GPSPoint = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          timestamp: position.timestamp,
-          accuracy: position.coords.accuracy
+          accuracy: position.coords.accuracy,
+          altitude: position.coords.altitude,
+          altitudeAccuracy: position.coords.altitudeAccuracy,
+          heading: position.coords.heading,
+          speed: position.coords.speed,
+          timestamp: position.timestamp
         };
 
-        setCurrentPosition(newPoint);
-        setError(null);
+        setState(prev => ({
+          ...prev,
+          lastPosition: newPoint,
+          error: null,
+          accuracy: opts.enableHighAccuracy ? 'high' : 'low'
+        }));
 
-        // Only add to history if minimum distance is met
         setTrackingHistory(prevHistory => {
           const lastPoint = prevHistory[prevHistory.length - 1];
-          if (!lastPoint || calculateDistance(lastPoint, newPoint) >= minDistance) {
+          if (!lastPoint || 
+              (calculateDistance(lastPoint, newPoint) >= opts.minDistance! &&
+               newPoint.timestamp - lastPoint.timestamp >= opts.minTimeInterval!)) {
             const newHistory = [...prevHistory, newPoint];
-            if (isOffline) {
+            if (isOffline && opts.persistLocally) {
               saveTrackingHistory(newHistory);
             }
             return newHistory;
@@ -90,12 +123,16 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
         });
       },
       (error) => {
-        setError(error.message);
+        setState(prev => ({
+          ...prev,
+          error: error,
+          accuracy: 'none'
+        }));
       },
       {
-        enableHighAccuracy,
-        timeout: 5000,
-        maximumAge: 0
+        enableHighAccuracy: opts.enableHighAccuracy,
+        timeout: opts.timeout,
+        maximumAge: opts.maximumAge
       }
     );
 
@@ -104,13 +141,31 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [enableHighAccuracy, minDistance, isOffline]);
+  }, [
+    opts.enableHighAccuracy,
+    opts.minDistance,
+    opts.minTimeInterval,
+    opts.maximumAge,
+    opts.timeout,
+    isOffline,
+    opts.persistLocally,
+    loadTrackingHistory,
+    saveTrackingHistory
+  ]);
+
+  const startTracking = () => {
+    setState(prev => ({ ...prev, isTracking: true }));
+  };
+
+  const stopTracking = () => {
+    setState(prev => ({ ...prev, isTracking: false }));
+  };
 
   return {
-    currentPosition,
+    ...state,
     trackingHistory,
-    error,
-    isOffline,
+    startTracking,
+    stopTracking,
     calculateDistance
   };
 };

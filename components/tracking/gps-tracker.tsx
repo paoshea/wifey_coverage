@@ -6,20 +6,25 @@ import { Button } from '@/components/ui/button';
 import { MapContainer, TileLayer, Circle, useMap } from 'react-leaflet';
 import { Map as LeafletMap } from 'leaflet';
 import { useGPSTracking } from '@/lib/hooks/useGPSTracking';
-import { MapPin, Navigation, History } from 'lucide-react';
+import { MapPin, Navigation, History, Power } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 
 export function GPSTracker() {
   const {
-    currentPosition,
+    lastPosition,
     trackingHistory,
     error,
-    isOffline,
+    isTracking,
+    accuracy,
+    storedPoints,
+    startTracking,
+    stopTracking,
     calculateDistance
   } = useGPSTracking({
     enableHighAccuracy: true,
-    interval: 5000,
-    minDistance: 5 // 5 meters minimum distance
+    minTimeInterval: 5000,
+    minDistance: 5, // 5 meters minimum distance
+    persistLocally: true
   });
 
   const [totalDistance, setTotalDistance] = useState(0);
@@ -41,26 +46,43 @@ export function GPSTracker() {
           <Navigation className="h-4 w-4" />
           GPS Tracking
         </h3>
-        {isOffline && (
-          <span className="text-sm text-yellow-500">Offline Mode</span>
-        )}
+        <Button
+          variant={isTracking ? "destructive" : "default"}
+          size="sm"
+          onClick={isTracking ? stopTracking : startTracking}
+        >
+          <Power className="h-4 w-4 mr-2" />
+          {isTracking ? 'Stop' : 'Start'} Tracking
+        </Button>
       </div>
 
       {error ? (
-        <div className="text-red-500 text-sm">{error}</div>
+        <div className="text-red-500 text-sm">{error.message}</div>
       ) : (
         <>
-          {currentPosition && (
+          {lastPosition && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 <span className="text-sm">
-                  {currentPosition.latitude.toFixed(6)}, {currentPosition.longitude.toFixed(6)}
+                  {lastPosition.latitude.toFixed(6)}, {lastPosition.longitude.toFixed(6)}
                 </span>
               </div>
               <div className="text-sm text-muted-foreground">
-                Accuracy: ±{currentPosition.accuracy.toFixed(1)}m
+                Accuracy: ±{lastPosition.accuracy?.toFixed(1) || 'unknown'}m
+                {accuracy !== 'none' && ` (${accuracy} precision)`}
               </div>
+              {lastPosition.altitude && (
+                <div className="text-sm text-muted-foreground">
+                  Altitude: {lastPosition.altitude.toFixed(1)}m
+                  {lastPosition.altitudeAccuracy && ` (±${lastPosition.altitudeAccuracy.toFixed(1)}m)`}
+                </div>
+              )}
+              {lastPosition.speed && (
+                <div className="text-sm text-muted-foreground">
+                  Speed: {(lastPosition.speed * 3.6).toFixed(1)} km/h
+                </div>
+              )}
             </div>
           )}
 
@@ -70,7 +92,7 @@ export function GPSTracker() {
               <span className="text-sm">Tracking History</span>
             </div>
             <div className="text-sm">
-              Points: {trackingHistory.length}
+              Points: {trackingHistory.length} ({storedPoints} stored locally)
               <br />
               Total Distance: {(totalDistance / 1000).toFixed(2)}km
             </div>
@@ -95,17 +117,17 @@ export function GPSTracker() {
       <Button
         className="w-full"
         onClick={() => {
-          if (currentPosition) {
+          if (lastPosition) {
             const mapElement = document.querySelector('.leaflet-container') as HTMLElement & { _leaflet_map: LeafletMap };
             if (mapElement?._leaflet_map) {
               mapElement._leaflet_map.setView(
-                [currentPosition.latitude, currentPosition.longitude],
+                [lastPosition.latitude, lastPosition.longitude],
                 mapElement._leaflet_map.getZoom()
               );
             }
           }
         }}
-        disabled={!currentPosition}
+        disabled={!lastPosition}
       >
         Center on Current Location
       </Button>

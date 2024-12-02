@@ -24,7 +24,7 @@ export default function OfflinePage() {
           <WifiOff className="h-4 w-4" />
           <AlertTitle>Offline Mode Active</AlertTitle>
           <AlertDescription>
-            Your location data is being stored locally and will sync when you're back online.
+            Your location data is being stored locally and will sync when you&apos;re back online.
           </AlertDescription>
         </Alert>
       )}
