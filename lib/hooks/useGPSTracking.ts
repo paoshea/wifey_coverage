@@ -56,7 +56,7 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
     } catch (error) {
       console.error('Failed to load tracking history:', error);
     }
-  }, [opts.persistLocally]);
+  }, [opts.persistLocally, setTrackingHistory]);
 
   const saveTrackingHistory = useCallback(async (history: GPSPoint[]) => {
     if (!opts.persistLocally) return;
@@ -151,7 +151,8 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
     opts.persistLocally,
     isOffline,
     calculateDistance,
-    saveTrackingHistory
+    saveTrackingHistory,
+    loadTrackingHistory
   ]);
 
   const startTracking = () => {
