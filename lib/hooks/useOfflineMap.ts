@@ -38,9 +38,10 @@ export const useOfflineMap = () => {
     loadCachedTiles();
 
     return () => {
-      offlineTiles.forEach(url => URL.revokeObjectURL(url));
+      // Clean up existing object URLs
+      Array.from(offlineTiles.values()).forEach(url => URL.revokeObjectURL(url));
     };
-  }, [isOffline, offlineTiles]);
+  }, [isOffline]); // Remove offlineTiles from dependency array to prevent infinite loop
 
   const getTileUrl = (baseUrl: string) => {
     if (!isOffline) return baseUrl;

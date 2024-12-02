@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useOfflineDetection } from './useOfflineDetection';
 import { GPSPoint, TrackingOptions, TrackingState } from '@/lib/types/gps';
 import localforage from 'localforage';
@@ -31,7 +31,7 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
   const isOffline = useOfflineDetection();
 
   // Calculate distance between two points
-  const calculateDistance = (p1: GPSPoint, p2: GPSPoint): number => {
+  const calculateDistance = useCallback((p1: GPSPoint, p2: GPSPoint): number => {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (p1.latitude * Math.PI) / 180;
     const φ2 = (p2.latitude * Math.PI) / 180;
@@ -44,43 +44,44 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c;
-  };
+  }, []); // No dependencies needed as it's a pure calculation
 
-  // Save tracking history to local storage
-  const saveTrackingHistory = async (points: GPSPoint[]) => {
+  const loadTrackingHistory = useCallback(async () => {
     if (!opts.persistLocally) return;
-    
     try {
-      const trimmedPoints = points.slice(-opts.maxStorageSize!);
-      await localforage.setItem(opts.storageKey!, trimmedPoints);
-      setState(prev => ({ ...prev, storedPoints: trimmedPoints.length }));
-    } catch (error) {
-      console.error('Error saving tracking history:', error);
-    }
-  };
-
-  // Load tracking history from local storage
-  const loadTrackingHistory = async () => {
-    if (!opts.persistLocally) return;
-    
-    try {
-      const savedHistory = await localforage.getItem<GPSPoint[]>(opts.storageKey!);
-      if (savedHistory) {
-        setTrackingHistory(savedHistory);
-        setState(prev => ({ ...prev, storedPoints: savedHistory.length }));
+      const stored = await localforage.getItem<GPSPoint[]>('tracking-history');
+      if (stored) {
+        setTrackingHistory(stored);
       }
     } catch (error) {
-      console.error('Error loading tracking history:', error);
+      console.error('Failed to load tracking history:', error);
     }
-  };
+  }, [opts.persistLocally]);
+
+  const saveTrackingHistory = useCallback(async (history: GPSPoint[]) => {
+    if (!opts.persistLocally) return;
+    try {
+      await localforage.setItem('tracking-history', history);
+    } catch (error) {
+      console.error('Failed to save tracking history:', error);
+    }
+  }, [opts.persistLocally]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     if (!navigator?.geolocation) {
+      const error = {
+        code: 2, // POSITION_UNAVAILABLE
+        message: 'Geolocation is not supported',
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3
+      } as GeolocationPositionError;
+
       setState(prev => ({
         ...prev,
-        error: new Error('Geolocation is not supported') as GeolocationPositionError,
+        error,
         accuracy: 'none'
       }));
       return;
@@ -147,9 +148,9 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
     opts.minTimeInterval,
     opts.maximumAge,
     opts.timeout,
-    isOffline,
     opts.persistLocally,
-    loadTrackingHistory,
+    isOffline,
+    calculateDistance,
     saveTrackingHistory
   ]);
 

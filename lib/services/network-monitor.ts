@@ -2,9 +2,9 @@ import { CoveragePoint, NetworkStatus } from '@/lib/types/network';
 import { useCoverageStore } from '@/lib/store/coverage-store';
 import { offlineSync } from './offline-sync';
 
-class NetworkMonitor {
+export class NetworkMonitor {
   private static instance: NetworkMonitor;
-  private monitoringInterval: NodeJS.Timer | null = null;
+  private monitoringInterval: NodeJS.Timeout | null = null;
   private readonly UPDATE_INTERVAL = 10000; // 10 seconds
 
   private constructor() {
@@ -111,32 +111,38 @@ class NetworkMonitor {
     };
   }
 
-  startMonitoring(): void {
-    if (this.monitoringInterval) return;
+  private async checkNetworkStatus(): Promise<void> {
+    try {
+      if (typeof window === 'undefined') return;
 
-    this.monitoringInterval = setInterval(async () => {
-      try {
-        if (typeof window === 'undefined') return;
+      const status = await this.getCurrentNetworkStatus();
+      const point = {
+        id: crypto.randomUUID(),
+        status,
+        reportedBy: 'current-user',
+        verified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
 
-        const status = await this.getCurrentNetworkStatus();
-        const point = {
-          id: crypto.randomUUID(),
-          status,
-          reportedBy: 'current-user',
-          verified: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-
-        if (navigator?.onLine) {
-          useCoverageStore.getState().addCoveragePoint(point);
-        } else {
-          await offlineSync.addToQueue(point);
-        }
-      } catch (error) {
-        console.error('Error monitoring network status:', error);
+      if (navigator?.onLine) {
+        useCoverageStore.getState().addCoveragePoint(point);
+      } else {
+        await offlineSync.addToQueue(point);
       }
-    }, this.UPDATE_INTERVAL);
+    } catch (error) {
+      console.error('Error monitoring network status:', error);
+    }
+  }
+
+  startMonitoring(interval: number = 5000): void {
+    if (this.monitoringInterval) {
+      this.stopMonitoring();
+    }
+
+    this.monitoringInterval = setInterval(() => {
+      this.checkNetworkStatus();
+    }, interval);
   }
 
   stopMonitoring(): void {
