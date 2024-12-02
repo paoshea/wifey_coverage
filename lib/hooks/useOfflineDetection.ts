@@ -3,9 +3,13 @@
 import { useState, useEffect } from 'react';
 
 export const useOfflineDetection = () => {
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    setIsOffline(!navigator.onLine);
+    
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
 

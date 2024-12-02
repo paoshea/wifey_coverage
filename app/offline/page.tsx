@@ -28,11 +28,10 @@ export default function OfflinePage() {
           </AlertDescription>
         </Alert>
       )}
-
       <div className="grid gap-4 md:grid-cols-[300px,1fr]">
         <div className="space-y-4">
-          <GPSStatus />
           <GPSTracker />
+          <GPSStatus />
           <DistanceCalculator />
           <StorageInfo />
         </div>

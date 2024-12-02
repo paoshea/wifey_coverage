@@ -1,5 +1,4 @@
 import './globals.css';
-import './styles/mobile.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/providers/theme-provider';

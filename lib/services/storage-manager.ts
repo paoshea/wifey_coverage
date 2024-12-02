@@ -97,10 +97,10 @@ class StorageManager {
     const now = Date.now();
 
     for (const store of this.stores.values()) {
-      await store.iterate((value, key) => {
+      await store.iterate<string, void>((value, key) => {
         try {
-          const data = CompressionService.decompress(value);
-          if (data.timestamp && now - data.timestamp > maxAge) {
+          const data = CompressionService.decompress<{ timestamp?: number }>(value);
+          if (data?.timestamp && now - data.timestamp > maxAge) {
             store.removeItem(key);
           }
         } catch (error) {

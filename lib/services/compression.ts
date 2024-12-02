@@ -3,7 +3,7 @@
 import LZString from 'lz-string';
 
 export class CompressionService {
-  static compress(data: any): string {
+  static compress(data: unknown): string {
     try {
       const jsonString = JSON.stringify(data);
       return LZString.compressToUTF16(jsonString);
@@ -13,10 +13,10 @@ export class CompressionService {
     }
   }
 
-  static decompress(compressed: string): any {
+  static decompress<T = unknown>(compressed: string): T | null {
     try {
       const jsonString = LZString.decompressFromUTF16(compressed);
-      return jsonString ? JSON.parse(jsonString) : null;
+      return jsonString ? JSON.parse(jsonString) as T : null;
     } catch (error) {
       console.error('Decompression error:', error);
       throw error;
@@ -27,7 +27,8 @@ export class CompressionService {
     try {
       const buffer = await blob.arrayBuffer();
       const uint8Array = new Uint8Array(buffer);
-      return LZString.compressToUTF16(String.fromCharCode(...uint8Array));
+      const chars = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
+      return LZString.compressToUTF16(chars);
     } catch (error) {
       console.error('Blob compression error:', error);
       throw error;

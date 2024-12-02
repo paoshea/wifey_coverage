@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { MapContainer, TileLayer, Circle, useMap } from 'react-leaflet';
+import { Map as LeafletMap } from 'leaflet';
 import { useGPSTracking } from '@/lib/hooks/useGPSTracking';
 import { MapPin, Navigation, History } from 'lucide-react';
 import { formatDistance } from 'date-fns';
@@ -94,9 +96,12 @@ export function GPSTracker() {
         className="w-full"
         onClick={() => {
           if (currentPosition) {
-            const map = document.querySelector('.leaflet-container')?._leaflet_map;
-            if (map) {
-              map.setView([currentPosition.latitude, currentPosition.longitude], map.getZoom());
+            const mapElement = document.querySelector('.leaflet-container') as HTMLElement & { _leaflet_map: LeafletMap };
+            if (mapElement?._leaflet_map) {
+              mapElement._leaflet_map.setView(
+                [currentPosition.latitude, currentPosition.longitude],
+                mapElement._leaflet_map.getZoom()
+              );
             }
           }
         }}

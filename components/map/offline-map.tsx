@@ -13,6 +13,7 @@ import { LocationMarker } from './location-marker';
 import { useCoverageStore } from '@/lib/store/coverage-store';
 import { findNearestCoveragePoints } from '@/lib/utils/distance';
 import 'leaflet/dist/leaflet.css';
+import { LatLng, Map as LeafletMap } from 'leaflet';
 
 function OfflineMapController() {
   const { location } = useLocation();
@@ -98,9 +99,9 @@ export function OfflineMap() {
         <Button
           className="absolute bottom-4 right-4 z-[1000]"
           onClick={() => {
-            const map = document.querySelector('.leaflet-container')?._leaflet_map;
-            if (map) {
-              map.setView([location.latitude, location.longitude], 13);
+            const mapElement = document.querySelector('.leaflet-container') as HTMLElement & { _leaflet_map: LeafletMap };
+            if (mapElement?._leaflet_map) {
+              mapElement._leaflet_map.setView([location.latitude, location.longitude], 13);
             }
           }}
         >

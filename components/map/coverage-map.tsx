@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Circle, useMap } from 'react-leaflet';
-import { LatLng } from 'leaflet';
+import { LatLng, Map as LeafletMap } from 'leaflet';
 import { useNetworkStatus } from '@/lib/hooks/useNetworkStatus';
 import { Button } from '@/components/ui/button';
 import { Locate } from 'lucide-react';
@@ -66,11 +66,11 @@ export function CoverageMap() {
         className="absolute bottom-4 right-4 z-[1000]"
         onClick={() => {
           if (status?.coordinates) {
-            const map = document.querySelector('.leaflet-container')?._leaflet_map;
-            if (map) {
-              map.setView(
+            const mapElement = document.querySelector('.leaflet-container') as HTMLElement & { _leaflet_map: LeafletMap };
+            if (mapElement?._leaflet_map) {
+              mapElement._leaflet_map.setView(
                 [status.coordinates.latitude, status.coordinates.longitude],
-                map.getZoom()
+                mapElement._leaflet_map.getZoom()
               );
             }
           }

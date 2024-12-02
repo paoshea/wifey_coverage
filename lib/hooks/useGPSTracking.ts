@@ -2,20 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useOfflineDetection } from './useOfflineDetection';
+import { GPSPoint, TrackingOptions } from '@/lib/types/gps';
 import localforage from 'localforage';
-
-interface GPSPoint {
-  latitude: number;
-  longitude: number;
-  timestamp: number;
-  accuracy: number;
-}
-
-interface TrackingOptions {
-  enableHighAccuracy?: boolean;
-  interval?: number;
-  minDistance?: number; // meters
-}
 
 export const useGPSTracking = (options: TrackingOptions = {}) => {
   const [currentPosition, setCurrentPosition] = useState<GPSPoint | null>(null);
@@ -67,6 +55,13 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
   };
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    if (!navigator?.geolocation) {
+      setError('Geolocation is not supported by your browser');
+      return;
+    }
+
     loadTrackingHistory();
 
     const watchId = navigator.geolocation.watchPosition(
@@ -105,7 +100,9 @@ export const useGPSTracking = (options: TrackingOptions = {}) => {
     );
 
     return () => {
-      navigator.geolocation.clearWatch(watchId);
+      if (navigator?.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
+      }
     };
   }, [enableHighAccuracy, minDistance, isOffline]);
 

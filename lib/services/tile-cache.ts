@@ -1,6 +1,6 @@
 import localforage from 'localforage';
 import { CompressionService } from './compression';
-import { get, set, del } from 'idb-keyval';
+import * as idbKeyval from 'idb-keyval';
 
 const TILE_CACHE = 'map-tiles-cache';
 const TILE_CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -8,14 +8,22 @@ const MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB
 
 class TileCache {
   private store: LocalForage;
-  private metaStore: typeof import('idb-keyval');
+  private metaStore: {
+    get: typeof idbKeyval.get;
+    set: typeof idbKeyval.set;
+    del: typeof idbKeyval.del;
+  };
 
   constructor() {
     this.store = localforage.createInstance({
       name: TILE_CACHE,
       storeName: 'tiles'
     });
-    this.metaStore = { get, set, del };
+    this.metaStore = {
+      get: idbKeyval.get,
+      set: idbKeyval.set,
+      del: idbKeyval.del
+    };
     this.initializeCache();
   }
 
@@ -75,26 +83,30 @@ class TileCache {
 
   private async clearOldest(): Promise<void> {
     const items: { key: string; timestamp: number }[] = [];
-    await this.store.iterate<{ timestamp: number }>((value, key) => {
-      items.push({ key, timestamp: value.timestamp });
+    await this.store.iterate<{ data: string; timestamp: number }, void>((value, key) => {
+      items.push({ key: key as string, timestamp: value.timestamp });
     });
 
     items.sort((a, b) => a.timestamp - b.timestamp);
     
+    let currentSize = await this.metaStore.get('cache-size') || 0;
     const itemsToRemove = Math.ceil(items.length * 0.2);
     for (let i = 0; i < itemsToRemove; i++) {
+      const item = await this.store.getItem<{ data: string; timestamp: number }>(items[i].key);
+      if (item) {
+        currentSize -= item.data.length;
+      }
       await this.store.removeItem(items[i].key);
     }
 
-    const newSize = await this.getCacheSize();
-    await this.metaStore.set('cache-size', newSize);
+    await this.metaStore.set('cache-size', currentSize);
   }
 
   async clearExpired(): Promise<void> {
     const now = Date.now();
     let newSize = 0;
 
-    await this.store.iterate<{ data: string; timestamp: number }>(async (value, key) => {
+    await this.store.iterate<{ data: string; timestamp: number }, void>(async (value, key) => {
       if (now - value.timestamp > TILE_CACHE_EXPIRY) {
         await this.store.removeItem(key);
       } else {
@@ -113,7 +125,7 @@ class TileCache {
   }> {
     const size = await this.getCacheSize();
     let count = 0;
-    await this.store.iterate(() => { count++; });
+    await this.store.iterate<{ data: string; timestamp: number }, void>(() => { count++; });
     const lastCleanup = await this.metaStore.get('last-cleanup') || 0;
 
     return { size, count, lastCleanup };

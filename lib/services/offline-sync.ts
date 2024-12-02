@@ -43,14 +43,14 @@ class OfflineSync {
     }
   }
 
-  private async syncPendingData(): Promise<void> {
+  public async syncPendingData(): Promise<void> {
     if (this.syncInProgress) return;
 
     try {
       this.syncInProgress = true;
       const items: SyncItem[] = [];
 
-      await this.store.iterate<string>((compressed, key) => {
+      await this.store.iterate<string, void>((compressed, key) => {
         const item = CompressionService.decompress(compressed) as SyncItem;
         items.push(item);
       });

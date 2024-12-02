@@ -9,12 +9,18 @@ export const useNetworkStatus = () => {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const updateStatus = async () => {
       try {
         setLoading(true);
         
         // Get current position
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          if (!navigator?.geolocation) {
+            reject(new Error('Geolocation not supported'));
+            return;
+          }
           navigator.geolocation.getCurrentPosition(resolve, reject);
         });
 
