@@ -17,7 +17,6 @@ export function RangeSwitcher({ range, onChange }: RangeSwitcherProps) {
   const ranges = [0.5, 1, 2, 5, 10, 20, 50];
 
   const handleZoom = (direction: 'in' | 'out') => {
-    if (!map) return;
     const currentZoom = map.getZoom();
     map.setZoom(currentZoom + (direction === 'in' ? 1 : -1));
   };

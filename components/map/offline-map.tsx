@@ -28,6 +28,34 @@ function OfflineMapController() {
   return null;
 }
 
+function MapControls({ searchRange, setSearchRange }: { searchRange: number; setSearchRange: (value: number) => void }) {
+  return (
+    <>
+      <RangeSwitcher range={searchRange} onChange={setSearchRange} />
+      <LocationButton />
+    </>
+  );
+}
+
+function LocationButton() {
+  const { location } = useLocation();
+  const map = useMap();
+
+  if (!location) return null;
+
+  return (
+    <Button
+      className="absolute bottom-4 right-4 z-[1000]"
+      onClick={() => {
+        map.setView([location.latitude, location.longitude], 13);
+      }}
+    >
+      <Locate className="mr-2 h-4 w-4" />
+      Find Me
+    </Button>
+  );
+}
+
 export function OfflineMap() {
   const { getTileUrl, isOffline } = useOfflineMap();
   const { location } = useLocation();
@@ -93,22 +121,8 @@ export function OfflineMap() {
           </>
         )}
         <TileManager />
+        <MapControls searchRange={searchRange} setSearchRange={setSearchRange} />
       </MapContainer>
-      <RangeSwitcher range={searchRange} onChange={setSearchRange} />
-      {location && (
-        <Button
-          className="absolute bottom-4 right-4 z-[1000]"
-          onClick={() => {
-            const mapElement = document.querySelector('.leaflet-container') as HTMLElement & { _leaflet_map: LeafletMap };
-            if (mapElement?._leaflet_map) {
-              mapElement._leaflet_map.setView([location.latitude, location.longitude], 13);
-            }
-          }}
-        >
-          <Locate className="mr-2 h-4 w-4" />
-          Find Me
-        </Button>
-      )}
     </div>
   );
 }
